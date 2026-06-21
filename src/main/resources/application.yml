@@ -13,6 +13,9 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  app:
+    ingestion:
+      enabled: false
 
 ai:
   embedding:
