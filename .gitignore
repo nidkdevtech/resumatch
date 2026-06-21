@@ -13,6 +13,9 @@ target/
 .springBeans
 .sts4-cache
 
+#Dataset files
+src/main/resources/data
+
 ### IntelliJ IDEA ###
 .idea
 *.iws
