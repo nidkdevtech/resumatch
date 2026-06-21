@@ -21,7 +21,7 @@ public class OllamaEmbeddingService implements EmbeddingService {
     }
 
     @Override
-    public float[] embedd(String text) {
+    public float[] embed(String text) {
         return embeddingModel.embed(text)
                 .content()
                 .vector();
