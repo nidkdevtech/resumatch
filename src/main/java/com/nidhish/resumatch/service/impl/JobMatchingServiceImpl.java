@@ -6,6 +6,7 @@ import com.nidhish.resumatch.repository.JobEmbeddingRepository;
 import com.nidhish.resumatch.repository.JobRepository;
 import com.nidhish.resumatch.service.EmbeddingService;
 import com.nidhish.resumatch.service.JobMatchingService;
+import com.nidhish.resumatch.service.MatchExplanationService;
 import com.nidhish.resumatch.service.ResumeParserService;
 import org.springframework.stereotype.Service;
 
@@ -19,35 +20,37 @@ public class JobMatchingServiceImpl implements JobMatchingService {
     private final EmbeddingService  embeddingService;
     private final JobEmbeddingRepository jobEmbeddingRepository;
     private final JobRepository jobRepository;
+    private final MatchExplanationService  matchExplanationService;
 
-    public JobMatchingServiceImpl(ResumeParserService resumeParserService, EmbeddingService embeddingService, JobEmbeddingRepository jobEmbeddingRepository, JobRepository jobRepository) {
+    public JobMatchingServiceImpl(ResumeParserService resumeParserService, EmbeddingService embeddingService, JobEmbeddingRepository jobEmbeddingRepository, JobRepository jobRepository, MatchExplanationService matchExplanationService) {
         this.resumeParserService = resumeParserService;
         this.embeddingService = embeddingService;
         this.jobEmbeddingRepository = jobEmbeddingRepository;
         this.jobRepository = jobRepository;
+        this.matchExplanationService = matchExplanationService;
     }
 
     @Override
     public List<JobMatchResult> findMatches(byte[] resumePdfBytes, int topK) {
-        //Step 1 : Extract text from PDF
+        // Step 1: Extract text from PDF
         String resumeText = resumeParserService.extractText(resumePdfBytes);
 
-        //Step 2 : Embedd the resume text
+        // Step 2: Embed the resume text
         float[] resumeEmbedding = embeddingService.embed(resumeText);
 
-        //Step 3 : Search pgvector
+        // Step 3: Search pgvector
         String vectorString = toVectorString(resumeEmbedding);
         List<Object[]> rawResults = jobEmbeddingRepository.findSimilarJobEmbeddings(vectorString, topK);
 
-        //Step 4 : Map results to JobMatchResult
-        return rawResults.stream()
+        // Step 4: Map results to JobMatchResult
+        List<JobMatchResult> matches = rawResults.stream()
                 .map(row -> {
-                    Long jobId = ((Number)row[1]).longValue();
-                    Double similarityScore = ((Number)row[6]).doubleValue();
+                    Long jobId = ((Number) row[1]).longValue();
+                    Double similarityScore = ((Number) row[6]).doubleValue();
 
                     Job job = jobRepository.findById(jobId).orElse(null);
 
-                    if(job == null) return null;
+                    if (job == null) return null;
 
                     return JobMatchResult.builder()
                             .title(job.getTitle())
@@ -66,6 +69,9 @@ public class JobMatchingServiceImpl implements JobMatchingService {
                 })
                 .filter(result -> result != null)
                 .collect(Collectors.toList());
+
+        // Step 5: Add AI explanations
+        return matchExplanationService.enrichWithExplanation(resumeText, matches);
     }
 
     private String toVectorString(float[] embedding) {
