@@ -5,5 +5,5 @@ import com.nidhish.resumatch.dto.JobMatchResult;
 import java.util.List;
 
 public interface JobMatchingService {
-    List<JobMatchResult> findMatches(byte[] resumePdfBytes, int topK);
+    List<JobMatchResult> findMatches(byte[] resumePdfBytes, int topK, String jobType, String experienceLevel);
 }

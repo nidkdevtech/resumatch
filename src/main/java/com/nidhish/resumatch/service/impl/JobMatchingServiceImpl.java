@@ -10,6 +10,7 @@ import com.nidhish.resumatch.service.MatchExplanationService;
 import com.nidhish.resumatch.service.ResumeParserService;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,7 +32,7 @@ public class JobMatchingServiceImpl implements JobMatchingService {
     }
 
     @Override
-    public List<JobMatchResult> findMatches(byte[] resumePdfBytes, int topK) {
+    public List<JobMatchResult> findMatches(byte[] resumePdfBytes, int topK, String jobType, String experienceLevel) {
         // Step 1: Extract text from PDF
         String resumeText = resumeParserService.extractText(resumePdfBytes);
 
@@ -40,10 +41,20 @@ public class JobMatchingServiceImpl implements JobMatchingService {
 
         // Step 3: Search pgvector
         String vectorString = toVectorString(resumeEmbedding);
-        List<Object[]> rawResults = jobEmbeddingRepository.findSimilarJobEmbeddings(vectorString, topK);
+        List<Object[]> rawResults = jobEmbeddingRepository.findSimilarJobEmbeddings(vectorString, topK, jobType, experienceLevel);
+        List<Object[]> uniqueJobResults = rawResults.stream()
+                .collect(Collectors.toMap(
+                        row -> ((Number) row[1]).longValue(),
+                        row -> row,
+                        this::keepHigherScore,
+                        LinkedHashMap::new
+                ))
+                .values()
+                .stream()
+                .toList();
 
         // Step 4: Map results to JobMatchResult
-        List<JobMatchResult> matches = rawResults.stream()
+        List<JobMatchResult> matches = uniqueJobResults.stream()
                 .map(row -> {
                     Long jobId = ((Number) row[1]).longValue();
                     Double similarityScore = ((Number) row[6]).doubleValue();
@@ -72,6 +83,13 @@ public class JobMatchingServiceImpl implements JobMatchingService {
 
         // Step 5: Add AI explanations
         return matchExplanationService.enrichWithExplanation(resumeText, matches);
+    }
+
+    private Object[] keepHigherScore(Object[] current, Object[] candidate) {
+        double currentScore = ((Number) current[6]).doubleValue();
+        double candidateScore = ((Number) candidate[6]).doubleValue();
+
+        return candidateScore > currentScore ? candidate : current;
     }
 
     private String toVectorString(float[] embedding) {
