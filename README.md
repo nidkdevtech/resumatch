@@ -14,6 +14,17 @@ ResuMatch goes beyond keyword matching. It extracts resume text, converts it int
 - AI-generated explanations for why each job matches the resume
 - React frontend with file upload and results display
 
+## Screenshots
+
+### Upload Resume
+![Upload Page](screenshots/upload-page.png)
+
+### Loading
+![Results Page](screenshots/loading.png)
+
+### AI-Powered Results
+![Results Page](screenshots/result-page.png)
+![Results Page](screenshots/result-page2.png)
 ## Architecture
 
 ```mermaid

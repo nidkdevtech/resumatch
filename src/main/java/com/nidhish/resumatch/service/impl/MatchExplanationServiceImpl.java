@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 @Service
 public class MatchExplanationServiceImpl implements MatchExplanationService {
     private final ChatLanguageModel  chatLanguageModel;
-    Pattern pattern = Pattern.compile("^(\\d+)\\.\\s*(.+)$");
+    private final Pattern pattern = Pattern.compile("^(\\d+)\\.\\s*(.+)$");
 
     public MatchExplanationServiceImpl(ChatLanguageModel chatLanguageModel) {
         this.chatLanguageModel = chatLanguageModel;
@@ -43,8 +43,10 @@ public class MatchExplanationServiceImpl implements MatchExplanationService {
     private String buildPrompt(String resumeText, List<JobMatchResult> batch) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("You are explaining job matches for a resume screening app.\n")
-                .append("For each numbered job, write exactly one concise sentence explaining why it matches the resume.\n")
-                .append("Return only numbered lines in the format '1. explanation'. Do not include extra text.\n\n")
+                .append("For each numbered job, write exactly one strong explanation sentence describing why the candidate is a good fit.\n")
+                .append("Mention the most relevant overlap such as skills, tools, domain experience, seniority, responsibilities, or location.\n")
+                .append("Be specific and persuasive, but keep each explanation to a single line.\n")
+                .append("Return only numbered lines in the format '1. explanation'. Do not include headings, bullets, or extra text.\n\n")
                 .append("Resume:\n")
                 .append(truncate(resumeText, 6000))
                 .append("\n\nJobs:\n");
